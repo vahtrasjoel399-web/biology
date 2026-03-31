@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Plant Tapper 🌱</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+:root{--bg:#e8f5e9;--card:#fff;--accent:#4caf50;--accent2:#66bb6a;--text:#2e7d32;--text2:#555;--gold:#ffc107;--shadow:0 2px 12px rgba(0,0,0,.1)}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;display:flex;flex-direction:column;align-items:center}
+.top-bar{position:sticky;top:0;z-index:100;width:100%;max-width:480px;background:linear-gradient(135deg,#43a047,#66bb6a);color:#fff;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;border-radius:0 0 18px 18px;box-shadow:var(--shadow)}
+.top-bar h1{font-size:1.1rem;letter-spacing:.5px}
+.music-btn{background:none;border:2px solid rgba(255,255,255,.4);color:#fff;border-radius:50%;width:32px;height:32px;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+.music-btn:hover{background:rgba(255,255,255,.15)}
+.music-btn.on{border-color:#fff;background:rgba(255,255,255,.2)}
+.score-display{font-size:1.3rem;font-weight:700}
+.score-display span{color:var(--gold)}
+.per-sec{font-size:.7rem;opacity:.85}
+.game-area{width:100%;max-width:480px;flex:1;display:flex;flex-direction:column;align-items:center;padding:10px}
+.plant-container{position:relative;width:220px;height:260px;margin:18px auto 10px;cursor:pointer;display:flex;align-items:flex-end;justify-content:center}
+.plant-container:active{transform:scale(.95)}
+.plant-svg{width:100%;height:100%;transition:all .3s}
+.pot{position:absolute;bottom:0;left:50%;transform:translateX(-50%)}
+.stage-label{text-align:center;font-size:.85rem;color:var(--text2);margin-bottom:4px}
+.progress-bar-wrap{width:80%;max-width:300px;height:14px;background:#c8e6c9;border-radius:7px;overflow:hidden;margin:0 auto 6px;position:relative}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,#66bb6a,#43a047);border-radius:7px;transition:width .3s;width:0%}
+.progress-bar-text{position:absolute;top:0;left:0;right:0;text-align:center;font-size:.6rem;line-height:14px;color:#fff;font-weight:700}
+.plant-name{text-align:center;font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:4px}
+.tap-hint{text-align:center;font-size:.75rem;color:#999;margin-bottom:10px}
+.tabs{display:flex;width:100%;max-width:440px;gap:4px;margin-bottom:8px;padding:0 6px}
+.tab-btn{flex:1;padding:9px 4px;border:none;background:#c8e6c9;color:var(--text);border-radius:10px 10px 0 0;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s}
+.tab-btn.active{background:var(--card);color:var(--accent);box-shadow:var(--shadow)}
+.tab-content{width:100%;max-width:440px;background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:10px;margin-bottom:20px;min-height:200px;display:none}
+.tab-content.active{display:block}
+.upgrade-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;margin-bottom:6px;background:#f1f8e9;transition:all .2s}
+.upgrade-item:hover{background:#dcedc8}
+.upgrade-icon{font-size:1.6rem;width:40px;text-align:center;flex-shrink:0}
+.upgrade-info{flex:1}
+.upgrade-name{font-weight:700;font-size:.85rem}
+.upgrade-desc{font-size:.7rem;color:var(--text2)}
+.upgrade-level{font-size:.65rem;color:#888}
+.upgrade-btn{padding:7px 14px;border:none;background:var(--accent);color:#fff;border-radius:8px;font-size:.75rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .2s}
+.upgrade-btn:disabled{background:#bbb;cursor:not-allowed}
+.upgrade-btn:not(:disabled):hover{background:#388e3c;transform:scale(1.05)}
+.plant-card{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;margin-bottom:6px;background:#f1f8e9}
+.plant-card.locked{opacity:.5;filter:grayscale(.6)}
+.plant-card.current{background:#c8e6c9;border:2px solid var(--accent)}
+.plant-card-icon{font-size:2rem;width:44px;text-align:center;flex-shrink:0}
+.plant-card-info{flex:1}
+.plant-card-name{font-weight:700;font-size:.85rem}
+.plant-card-desc{font-size:.7rem;color:var(--text2)}
+.plant-select-btn{padding:7px 14px;border:none;background:var(--accent);color:#fff;border-radius:8px;font-size:.75rem;font-weight:700;cursor:pointer;transition:all .2s}
+.plant-select-btn:disabled{background:#bbb;cursor:not-allowed}
+.stat-row{display:flex;justify-content:space-between;padding:8px 4px;border-bottom:1px solid #e8e8e8;font-size:.82rem}
+.stat-row:last-child{border:none}
+.stat-label{color:var(--text2)}.stat-val{font-weight:700;color:var(--text)}
+.float-text{position:absolute;pointer-events:none;font-weight:700;font-size:1.1rem;color:var(--gold);animation:floatUp .9s forwards;z-index:50}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-70px) scale(1.3)}}
+.particle{position:absolute;pointer-events:none;border-radius:50%;animation:particleFly .7s forwards;z-index:40}
+@keyframes particleFly{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(0)}}
+.popup-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:200;opacity:0;pointer-events:none;transition:opacity .3s}
+.popup-overlay.show{opacity:1;pointer-events:all}
+.popup{background:#fff;border-radius:18px;padding:24px;text-align:center;max-width:300px;width:90%;box-shadow:0 8px 30px rgba(0,0,0,.2);transform:scale(.8);transition:transform .3s}
+.popup-overlay.show .popup{transform:scale(1)}
+.popup-emoji{font-size:3rem;margin-bottom:8px}
+.popup-title{font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:4px}
+.popup-desc{font-size:.8rem;color:var(--text2);margin-bottom:14px}
+.popup-btn{padding:10px 28px;border:none;background:var(--accent);color:#fff;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer}
+.helpers-row{display:flex;justify-content:center;gap:6px;margin-bottom:4px;min-height:28px;flex-wrap:wrap}
+.helper-badge{font-size:1.1rem;animation:helperBounce 1.5s infinite}
+@keyframes helperBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.shake{animation:shake .15s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+@media(max-width:400px){.plant-container{width:180px;height:220px}.top-bar h1{font-size:.95rem}.score-display{font-size:1.1rem}}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div>
+    <h1>🌱 Plant Tapper</h1>
+    <div class="per-sec" id="perSec"></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="score-display">🪙 <span id="scoreEl">0</span></div>
+    <button class="music-btn" id="musicBtn" title="Muusika">🔇</button>
+  </div>
+</div>
+
+<div class="game-area">
+  <div class="helpers-row" id="helpersRow"></div>
+  <div class="plant-name" id="plantName">Kummel</div>
+  <div class="stage-label" id="stageLabel">Seeme</div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progFill"></div>
+    <div class="progress-bar-text" id="progText"></div>
+  </div>
+  <div class="plant-container" id="plantBox">
+    <svg id="plantSvg" viewBox="0 0 200 240" width="200" height="240"></svg>
+  </div>
+  <div class="tap-hint">Puuduta taime!</div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="upgrades">Täiendused</button>
+    <button class="tab-btn" data-tab="plants">Taimed</button>
+    <button class="tab-btn" data-tab="stats">Statistika</button>
+  </div>
+  <div class="tab-content active" id="tab-upgrades"></div>
+  <div class="tab-content" id="tab-plants"></div>
+  <div class="tab-content" id="tab-stats"></div>
+</div>
+
+<div class="popup-overlay" id="popupOverlay">
+  <div class="popup">
+    <div class="popup-emoji" id="popupEmoji">🌸</div>
+    <div class="popup-title" id="popupTitle">Uus staadium!</div>
+    <div class="popup-desc" id="popupDesc">Taim on kasvanud</div>
+    <button class="popup-btn" id="popupBtn">Suurepärane!</button>
+  </div>
+</div>
+
+<script>
+// =================== DATA ===================
+const PLANTS = [
+  {id:'daisy',name:'Kummel',emoji:'🌼',unlock:0,mult:1,color:'#fff176',center:'#ff8f00'},
+  {id:'tulip',name:'Tulp',emoji:'🌷',unlock:500,mult:1.3,color:'#ef5350',center:'#c62828'},
+  {id:'sunflower',name:'Päevalill',emoji:'🌻',unlock:3000,mult:1.7,color:'#fdd835',center:'#5d4037'},
+  {id:'rose',name:'Roos',emoji:'🌹',unlock:15000,mult:2.2,color:'#e91e63',center:'#880e4f'},
+  {id:'sakura',name:'Sakura',emoji:'🌸',unlock:80000,mult:3,color:'#f8bbd0',center:'#ad1457'},
+  {id:'cactus',name:'Kaktus',emoji:'🌵',unlock:400000,mult:4,color:'#66bb6a',center:'#2e7d32'}
+];
+
+const STAGES = [
+  {name:'Seeme',need:0},
+  {name:'Idu',need:50},
+  {name:'Õis',need:200},
+  {name:'Vili',need:600}
+];
+
+const UPGRADES = [
+  {id:'tapPow', name:'Puudutuse jõud', desc:'Iga tase annab +1 punkt puudutuse kohta. Mida kõrgem tase, seda rohkem punkte teenid igal puudutusel.', icon:'👆', baseCost:10, costMult:1.6, effect:'tap'},
+  {id:'growSpd', name:'Kasv', desc:'Kiirendab taime kasvu +50% iga tasemega. Taim jõuab kiiremini järgmisse kasvustaadiumisse.', icon:'📈', baseCost:25, costMult:1.7, effect:'grow'},
+  {id:'bee', name:'Mesilane', desc:'Iga mesilane toob automaatselt +1 punkt sekundis. Tolmeldab taime ka siis, kui sa ei puuduta!', icon:'🐝', baseCost:50, costMult:1.8, effect:'auto'},
+  {id:'rain', name:'Vihm', desc:'Iga vihm annab +3 punkti sekundis. Kastab taime automaatselt ja kiirendab kasvu.', icon:'🌧️', baseCost:200, costMult:1.9, effect:'auto3'},
+  {id:'sun', name:'Päike', desc:'Iga päike annab +10 punkti sekundis. Valgus toidab taime ja annab palju energiat.', icon:'☀️', baseCost:1000, costMult:2.0, effect:'auto10'},
+  {id:'worm', name:'Ussike', desc:'Iga ussike annab +30 punkti sekundis. Kobestab mulda ja teeb taime tugevaks.', icon:'🪱', baseCost:5000, costMult:2.1, effect:'auto30'}
+];
+
+// =================== STATE ===================
+let state = loadState();
+
+function defaultState(){
+  return {
+    score:0,
+    totalScore:0,
+    totalTaps:0,
+    plantIdx:0,
+    growth:0,
+    stage:0,
+    upgrades:{tapPow:0,growSpd:0,bee:0,rain:0,sun:0,worm:0},
+    unlockedPlants:[0],
+    completedPlants:[]
+  };
+}
+
+function loadState(){
+  try{
+    const s=JSON.parse(localStorage.getItem('plantTapper'));
+    if(s&&typeof s.score==='number') return s;
+  }catch(e){}
+  return defaultState();
+}
+
+function saveState(){
+  localStorage.setItem('plantTapper',JSON.stringify(state));
+}
+
+// =================== GETTERS ===================
+function tapValue(){
+  const base=1+state.upgrades.tapPow*1;
+  return Math.floor(base*currentPlant().mult);
+}
+
+function growPerTap(){
+  return 1+state.upgrades.growSpd*0.5;
+}
+
+function autoPerSec(){
+  return (state.upgrades.bee*1+state.upgrades.rain*3+state.upgrades.sun*10+state.upgrades.worm*30)*currentPlant().mult;
+}
+
+function upgradeCost(u){
+  const up=UPGRADES.find(x=>x.id===u);
+  return Math.floor(up.baseCost*Math.pow(up.costMult,state.upgrades[u]));
+}
+
+function currentPlant(){return PLANTS[state.plantIdx];}
+
+function stageNeed(){
+  if(state.stage>=STAGES.length-1) return STAGES[STAGES.length-1].need*2;
+  return STAGES[state.stage+1].need;
+}
+
+function stagePrev(){return STAGES[state.stage].need;}
+
+// =================== RENDER PLANT SVG ===================
+function stageProgress(){
+  const prev=stagePrev();
+  const need=stageNeed();
+  if(need<=prev) return 1;
+  return Math.min(1,Math.max(0,(state.growth-prev)/(need-prev)));
+}
+
+function lerp(a,b,t){return a+(b-a)*t;}
+
+function renderPlant(){
+  const svg=document.getElementById('plantSvg');
+  const p=currentPlant();
+  const s=state.stage;
+  const t=stageProgress(); // 0..1 within current stage
+  let html='';
+
+  // Pot
+  html+=`<rect x="60" y="200" width="80" height="36" rx="6" fill="#8d6e63"/>`;
+  html+=`<rect x="52" y="194" width="96" height="12" rx="4" fill="#a1887f"/>`;
+  html+=`<rect x="70" y="200" width="60" height="6" fill="#6d4c41"/>`;
+
+  // Dirt
+  html+=`<ellipse cx="100" cy="198" rx="40" ry="6" fill="#5d4037"/>`;
+
+  if(s===0){
+    // Seed — grows from tiny to normal, sprout tip emerges at end
+    const seedRx=lerp(5,8,t);
+    const seedRy=lerp(4,6,t);
+    html+=`<ellipse cx="100" cy="188" rx="${seedRx}" ry="${seedRy}" fill="#8d6e63">`;
+    html+=`<animate attributeName="ry" values="${seedRy};${seedRy+1};${seedRy}" dur="2s" repeatCount="indefinite"/></ellipse>`;
+    html+=`<ellipse cx="100" cy="187" rx="${seedRx/2}" ry="2" fill="#6d4c41"/>`;
+    // Tiny sprout emerging
+    if(t>0.3){
+      const sproutH=lerp(0,20,(t-0.3)/0.7);
+      html+=`<line x1="100" y1="186" x2="100" y2="${186-sproutH}" stroke="#a5d6a7" stroke-width="${lerp(1,3,(t-0.3)/0.7)}" stroke-linecap="round"/>`;
+    }
+    if(t>0.7){
+      const leafS=lerp(0,5,(t-0.7)/0.3);
+      html+=`<ellipse cx="${100-leafS}" cy="${186-lerp(0,20,(t-0.3)/0.7)+4}" rx="${leafS}" ry="${leafS/2}" fill="#c8e6c9" transform="rotate(-30,${100-leafS},${186-lerp(0,20,(t-0.3)/0.7)+4})"/>`;
+    }
+  } else if(s===1){
+    // Sprout — stem grows taller, leaves grow bigger
+    const stemTop=lerp(165,140,t);
+    const stemW=lerp(3,5,t);
+    const leafRx=lerp(6,12,t);
+    const leafRy=lerp(3,6,t);
+    html+=`<line x1="100" y1="192" x2="100" y2="${stemTop}" stroke="#66bb6a" stroke-width="${stemW}" stroke-linecap="round">`;
+    html+=`<animate attributeName="y2" values="${stemTop+3};${stemTop-2};${stemTop+3}" dur="3s" repeatCount="indefinite"/></line>`;
+    // Left leaf
+    const l1y=lerp(175,155,t);
+    html+=`<ellipse cx="${100-leafRx/2}" cy="${l1y}" rx="${leafRx}" ry="${leafRy}" fill="#81c784" transform="rotate(-30,${100-leafRx/2},${l1y})"/>`;
+    // Right leaf (appears at 30%)
+    if(t>0.3){
+      const lt2=Math.min(1,(t-0.3)/0.7);
+      const l2rx=lerp(0,leafRx,lt2);
+      const l2ry=lerp(0,leafRy,lt2);
+      const l2y=lerp(170,148,t);
+      html+=`<ellipse cx="${100+l2rx/2}" cy="${l2y}" rx="${l2rx}" ry="${l2ry}" fill="#81c784" transform="rotate(25,${100+l2rx/2},${l2y})"/>`;
+    }
+    // Bud starts appearing at 70%
+    if(t>0.7){
+      const budT=(t-0.7)/0.3;
+      const budR=lerp(0,6,budT);
+      html+=`<circle cx="100" cy="${stemTop-2}" r="${budR}" fill="${p.color}" opacity="${lerp(0.3,0.7,budT)}"/>`;
+    }
+  } else if(s===2){
+    // Flower — stem full, petals grow from small to full
+    const stemTop=lerp(110,100,t);
+    html+=`<line x1="100" y1="192" x2="100" y2="${stemTop}" stroke="#66bb6a" stroke-width="5" stroke-linecap="round"/>`;
+    html+=`<ellipse cx="80" cy="155" rx="${lerp(12,16,t)}" ry="7" fill="#81c784" transform="rotate(-30,80,155)"/>`;
+    html+=`<ellipse cx="120" cy="145" rx="${lerp(12,16,t)}" ry="7" fill="#81c784" transform="rotate(25,120,145)"/>`;
+    // Petals grow
+    const petalRx=lerp(4,14,t);
+    const petalRy=lerp(6,22,t);
+    const flowerCy=stemTop-5;
+    for(let i=0;i<6;i++){
+      const a=i*60;
+      html+=`<ellipse cx="100" cy="${flowerCy-17}" rx="${petalRx}" ry="${petalRy}" fill="${p.color}" opacity="${lerp(0.5,0.9,t)}" transform="rotate(${a},100,${flowerCy})">`;
+      html+=`<animate attributeName="opacity" values="${lerp(0.4,0.85,t)};${lerp(0.6,1,t)};${lerp(0.4,0.85,t)}" dur="${2+i*0.3}s" repeatCount="indefinite"/></ellipse>`;
+    }
+    const centerR=lerp(5,12,t);
+    html+=`<circle cx="100" cy="${flowerCy}" r="${centerR}" fill="${p.center}">`;
+    html+=`<animate attributeName="r" values="${centerR};${centerR+1};${centerR}" dur="2s" repeatCount="indefinite"/></circle>`;
+  } else {
+    // Fruit — grows from small to full with sparkles
+    const fruitR=lerp(10,22,t);
+    const stemW=lerp(5,6,t);
+    html+=`<line x1="100" y1="192" x2="100" y2="90" stroke="#66bb6a" stroke-width="${stemW}" stroke-linecap="round"/>`;
+    html+=`<ellipse cx="76" cy="150" rx="18" ry="8" fill="#81c784" transform="rotate(-30,76,150)"/>`;
+    html+=`<ellipse cx="124" cy="140" rx="18" ry="8" fill="#81c784" transform="rotate(25,124,140)"/>`;
+    html+=`<ellipse cx="70" cy="125" rx="${lerp(8,14,t)}" ry="6" fill="#a5d6a7" transform="rotate(-20,70,125)"/>`;
+    html+=`<ellipse cx="130" cy="118" rx="${lerp(8,14,t)}" ry="6" fill="#a5d6a7" transform="rotate(15,130,118)"/>`;
+    // Fruit body
+    html+=`<circle cx="100" cy="75" r="${fruitR}" fill="${p.color}">`;
+    html+=`<animate attributeName="r" values="${fruitR};${fruitR+2};${fruitR}" dur="2.5s" repeatCount="indefinite"/></circle>`;
+    html+=`<circle cx="100" cy="75" r="${fruitR*0.55}" fill="${p.center}" opacity=".7"/>`;
+    html+=`<ellipse cx="94" cy="68" rx="${fruitR*0.22}" ry="${fruitR*0.32}" fill="rgba(255,255,255,.3)"/>`;
+    // Sparkles appear gradually
+    if(t>0.3){
+      html+=`<circle cx="78" cy="60" r="2" fill="${p.color}" opacity=".7"><animate attributeName="opacity" values="0;1;0" dur="1.5s" repeatCount="indefinite"/></circle>`;
+    }
+    if(t>0.6){
+      html+=`<circle cx="122" cy="56" r="2.5" fill="${p.color}" opacity=".5"><animate attributeName="opacity" values="0;1;0" dur="2s" begin=".5s" repeatCount="indefinite"/></circle>`;
+    }
+    if(t>0.85){
+      html+=`<circle cx="110" cy="96" r="1.5" fill="${p.color}" opacity=".6"><animate attributeName="opacity" values="0;1;0" dur="1.8s" begin="1s" repeatCount="indefinite"/></circle>`;
+    }
+  }
+
+  svg.innerHTML=html;
+}
+
+// =================== RENDER UI ===================
+function renderScore(){
+  document.getElementById('scoreEl').textContent=formatNum(Math.floor(state.score));
+  const aps=autoPerSec();
+  document.getElementById('perSec').textContent=aps>0?`+${formatNum(aps)}/sek | +${tapValue()}/puudutus`:`+${tapValue()}/puudutus`;
+}
+
+function renderProgress(){
+  const prev=stagePrev();
+  const need=stageNeed();
+  const pct=Math.min(100,((state.growth-prev)/(need-prev))*100);
+  document.getElementById('progFill').style.width=pct+'%';
+  document.getElementById('progText').textContent=`${Math.floor(state.growth)}/${need}`;
+  document.getElementById('stageLabel').textContent=STAGES[state.stage].name;
+  document.getElementById('plantName').textContent=currentPlant().emoji+' '+currentPlant().name;
+}
+
+function renderUpgrades(){
+  const el=document.getElementById('tab-upgrades');
+  el.innerHTML=UPGRADES.map(u=>{
+    const lvl=state.upgrades[u.id];
+    const cost=upgradeCost(u.id);
+    const canBuy=state.score>=cost;
+    return `<div class="upgrade-item">
+      <div class="upgrade-icon">${u.icon}</div>
+      <div class="upgrade-info">
+        <div class="upgrade-name">${u.name}</div>
+        <div class="upgrade-desc">${u.desc}</div>
+        <div class="upgrade-level">Tase ${lvl}</div>
+      </div>
+      <button class="upgrade-btn" ${canBuy?'':'disabled'} onclick="buyUpgrade('${u.id}')">🪙 ${formatNum(cost)}</button>
+    </div>`;
+  }).join('');
+}
+
+function renderPlants(){
+  const el=document.getElementById('tab-plants');
+  el.innerHTML=PLANTS.map((p,i)=>{
+    const unlocked=state.unlockedPlants.includes(i);
+    const isCurrent=state.plantIdx===i;
+    const completed=state.completedPlants.includes(p.id);
+    let cls='plant-card';
+    if(!unlocked)cls+=' locked';
+    if(isCurrent)cls+=' current';
+    return `<div class="${cls}">
+      <div class="plant-card-icon">${p.emoji}</div>
+      <div class="plant-card-info">
+        <div class="plant-card-name">${p.name} ${completed?'✅':''}</div>
+        <div class="plant-card-desc">Kordaja: ×${p.mult} ${!unlocked?'| Vaja: 🪙'+formatNum(p.unlock):''}</div>
+      </div>
+      ${unlocked&&!isCurrent?`<button class="plant-select-btn" onclick="selectPlant(${i})">Vali</button>`:''}
+      ${isCurrent?'<span style="color:var(--accent);font-weight:700;font-size:.8rem">▶ Praegu</span>':''}
+    </div>`;
+  }).join('');
+}
+
+function renderStats(){
+  const el=document.getElementById('tab-stats');
+  const rows=[
+    ['Punkte kokku',formatNum(Math.floor(state.totalScore))],
+    ['Puudutusi kokku',formatNum(state.totalTaps)],
+    ['Punkte puudutuse eest',formatNum(tapValue())],
+    ['Autotulu/sek',formatNum(autoPerSec())],
+    ['Praegune taim',currentPlant().name],
+    ['Kasvustaadium',STAGES[state.stage].name],
+    ['Avatud taimi',state.unlockedPlants.length+'/'+PLANTS.length],
+    ['Lõpetatud taimi',state.completedPlants.length]
+  ];
+  el.innerHTML=rows.map(([l,v])=>`<div class="stat-row"><span class="stat-label">${l}</span><span class="stat-val">${v}</span></div>`).join('');
+}
+
+function renderHelpers(){
+  const el=document.getElementById('helpersRow');
+  let h='';
+  for(let i=0;i<Math.min(state.upgrades.bee,8);i++) h+='<span class="helper-badge" style="animation-delay:'+i*0.2+'s">🐝</span>';
+  for(let i=0;i<Math.min(state.upgrades.rain,5);i++) h+='<span class="helper-badge" style="animation-delay:'+i*0.3+'s">🌧️</span>';
+  for(let i=0;i<Math.min(state.upgrades.sun,4);i++) h+='<span class="helper-badge" style="animation-delay:'+i*0.25+'s">☀️</span>';
+  for(let i=0;i<Math.min(state.upgrades.worm,3);i++) h+='<span class="helper-badge" style="animation-delay:'+i*0.35+'s">🪱</span>';
+  el.innerHTML=h;
+}
+
+function renderAll(){
+  renderScore();renderProgress();renderPlant();renderUpgrades();renderPlants();renderStats();renderHelpers();
+}
+
+// =================== ACTIONS ===================
+function doTap(e){
+  const val=tapValue();
+  state.score+=val;
+  state.totalScore+=val;
+  state.totalTaps++;
+  state.growth+=growPerTap();
+
+  // Float text
+  const rect=document.getElementById('plantBox').getBoundingClientRect();
+  const cx=e?e.clientX:rect.left+rect.width/2;
+  const cy=e?e.clientY:rect.top+40;
+  spawnFloat(cx,cy,'+'+formatNum(val));
+  spawnParticles(cx,cy);
+
+  // Shake
+  const box=document.getElementById('plantBox');
+  box.classList.remove('shake');
+  void box.offsetWidth;
+  box.classList.add('shake');
+
+  checkStageUp();
+  checkPlantUnlocks();
+  renderScore();
+  renderProgress();
+  renderPlant();
+}
+
+function buyUpgrade(id){
+  const cost=upgradeCost(id);
+  if(state.score<cost)return;
+  state.score-=cost;
+  state.upgrades[id]++;
+  renderAll();
+  saveState();
+}
+
+function selectPlant(i){
+  if(!state.unlockedPlants.includes(i))return;
+  state.plantIdx=i;
+  state.growth=0;
+  state.stage=0;
+  renderAll();
+  saveState();
+}
+
+function checkStageUp(){
+  const need=stageNeed();
+  if(state.growth>=need && state.stage<STAGES.length-1){
+    state.stage++;
+    renderPlant();
+    showPopup(STAGES[state.stage].name===('Vili')?'🍎':'🌿',
+      'Uus staadium: '+STAGES[state.stage].name+'!',
+      currentPlant().name+' kasvab!');
+    // If fruit stage reached, mark plant as completed
+    if(state.stage===STAGES.length-1){
+      if(!state.completedPlants.includes(currentPlant().id)){
+        state.completedPlants.push(currentPlant().id);
+      }
+    }
+    saveState();
+  }
+}
+
+function checkPlantUnlocks(){
+  PLANTS.forEach((p,i)=>{
+    if(!state.unlockedPlants.includes(i) && state.totalScore>=p.unlock){
+      state.unlockedPlants.push(i);
+      showPopup(p.emoji,'Uus taim!',p.name+' avatud! Kordaja: ×'+p.mult);
+    }
+  });
+}
+
+// =================== EFFECTS ===================
+function spawnFloat(x,y,text){
+  const el=document.createElement('div');
+  el.className='float-text';
+  el.textContent=text;
+  el.style.left=x+'px';
+  el.style.top=y+'px';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),900);
+}
+
+function spawnParticles(x,y){
+  const colors=['#a5d6a7','#81c784','#66bb6a','#fff176','#fdd835'];
+  for(let i=0;i<6;i++){
+    const el=document.createElement('div');
+    el.className='particle';
+    const sz=4+Math.random()*6;
+    el.style.width=sz+'px';
+    el.style.height=sz+'px';
+    el.style.background=colors[Math.floor(Math.random()*colors.length)];
+    el.style.left=x+'px';
+    el.style.top=y+'px';
+    const angle=Math.random()*Math.PI*2;
+    const dist=30+Math.random()*40;
+    el.style.setProperty('--dx',Math.cos(angle)*dist+'px');
+    el.style.setProperty('--dy',Math.sin(angle)*dist+'px');
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),700);
+  }
+}
+
+function showPopup(emoji,title,desc){
+  document.getElementById('popupEmoji').textContent=emoji;
+  document.getElementById('popupTitle').textContent=title;
+  document.getElementById('popupDesc').textContent=desc;
+  document.getElementById('popupOverlay').classList.add('show');
+}
+
+// =================== UTILS ===================
+function formatNum(n){
+  if(n>=1e9)return (n/1e9).toFixed(1)+'B';
+  if(n>=1e6)return (n/1e6).toFixed(1)+'M';
+  if(n>=1e3)return (n/1e3).toFixed(1)+'K';
+  return Math.floor(n).toString();
+}
+
+// =================== EVENTS ===================
+document.getElementById('plantBox').addEventListener('click',function(e){
+  e.preventDefault();
+  doTap(e);
+});
+document.getElementById('plantBox').addEventListener('touchstart',function(e){
+  e.preventDefault();
+  const t=e.touches[0];
+  doTap(t);
+},{passive:false});
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+    this.classList.add('active');
+    document.getElementById('tab-'+this.dataset.tab).classList.add('active');
+    renderAll();
+  });
+});
+
+document.getElementById('popupBtn').addEventListener('click',function(){
+  document.getElementById('popupOverlay').classList.remove('show');
+});
+
+// =================== GAME LOOP ===================
+let lastTime=Date.now();
+function gameLoop(){
+  const now=Date.now();
+  const dt=(now-lastTime)/1000;
+  lastTime=now;
+
+  const aps=autoPerSec();
+  if(aps>0){
+    state.score+=aps*dt;
+    state.totalScore+=aps*dt;
+    state.growth+=dt*(0.5+state.upgrades.growSpd*0.3);
+    checkStageUp();
+    checkPlantUnlocks();
+  }
+
+  renderScore();
+  renderProgress();
+
+  requestAnimationFrame(gameLoop);
+}
+
+// Auto-save every 10 seconds
+setInterval(()=>{saveState();renderUpgrades();renderPlants();},10000);
+
+// =================== MUSIC ===================
+const MusicEngine=(function(){
+  let ctx,masterGain,playing=false;
+  const notes=[
+    [261.63,329.63,392.00],// C maj
+    [293.66,349.23,440.00],// D min
+    [349.23,440.00,523.25],// F maj
+    [392.00,493.88,587.33],// G maj
+    [261.63,329.63,392.00],// C maj
+    [220.00,261.63,329.63],// Am
+    [349.23,440.00,523.25],// F maj
+    [392.00,493.88,587.33] // G maj
+  ];
+  let stepIdx=0,loopTimer=null;
+
+  function init(){
+    ctx=new(window.AudioContext||window.webkitAudioContext)();
+    masterGain=ctx.createGain();
+    masterGain.gain.value=0.18;
+    masterGain.connect(ctx.destination);
+  }
+
+  function playChord(){
+    if(!ctx||!playing)return;
+    const chord=notes[stepIdx%notes.length];
+    const now=ctx.currentTime;
+    chord.forEach((freq,i)=>{
+      const osc=ctx.createOscillator();
+      const g=ctx.createGain();
+      const flt=ctx.createBiquadFilter();
+      osc.type='sine';
+      osc.frequency.value=freq*(i===0?0.5:1);
+      flt.type='lowpass';
+      flt.frequency.value=800;
+      g.gain.setValueAtTime(0,now);
+      g.gain.linearRampToValueAtTime(0.12,now+0.6);
+      g.gain.linearRampToValueAtTime(0.06,now+2.0);
+      g.gain.linearRampToValueAtTime(0,now+3.2);
+      osc.connect(flt);
+      flt.connect(g);
+      g.connect(masterGain);
+      osc.start(now+i*0.08);
+      osc.stop(now+3.3);
+    });
+    // Soft high melody note
+    const mel=ctx.createOscillator();
+    const mg=ctx.createGain();
+    mel.type='triangle';
+    mel.frequency.value=chord[Math.floor(Math.random()*chord.length)]*2;
+    mg.gain.setValueAtTime(0,now+0.3);
+    mg.gain.linearRampToValueAtTime(0.04,now+0.8);
+    mg.gain.linearRampToValueAtTime(0,now+2.8);
+    mel.connect(mg);
+    mg.connect(masterGain);
+    mel.start(now+0.3);
+    mel.stop(now+3.0);
+    stepIdx++;
+  }
+
+  function start(){
+    if(playing)return;
+    if(!ctx)init();
+    if(ctx.state==='suspended')ctx.resume();
+    playing=true;
+    playChord();
+    loopTimer=setInterval(playChord,3200);
+  }
+
+  function stop(){
+    playing=false;
+    if(loopTimer){clearInterval(loopTimer);loopTimer=null;}
+  }
+
+  function toggle(){
+    if(playing){stop();}else{start();}
+    return playing;
+  }
+
+  function isPlaying(){return playing;}
+
+  return{start,stop,toggle,isPlaying};
+})();
+
+// Music button
+const musicBtn=document.getElementById('musicBtn');
+function updateMusicBtn(){
+  const on=MusicEngine.isPlaying();
+  musicBtn.textContent=on?'🔊':'🔇';
+  musicBtn.classList.toggle('on',on);
+  localStorage.setItem('plantTapper_music',on?'1':'0');
+}
+musicBtn.addEventListener('click',function(){
+  MusicEngine.toggle();
+  updateMusicBtn();
+});
+// Restore music pref after first user interaction
+if(localStorage.getItem('plantTapper_music')==='1'){
+  const startOnce=()=>{
+    MusicEngine.start();
+    updateMusicBtn();
+    document.removeEventListener('click',startOnce);
+    document.removeEventListener('touchstart',startOnce);
+  };
+  document.addEventListener('click',startOnce,{once:false});
+  document.addEventListener('touchstart',startOnce,{once:false});
+}
+
+// =================== INIT ===================
+renderAll();
+gameLoop();
+</script>
+</body>
+</html>
