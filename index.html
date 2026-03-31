@@ -6,8 +6,17 @@
 <title>Plant Tapper 🌱</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
-:root{--bg:#e8f5e9;--card:#fff;--accent:#4caf50;--accent2:#66bb6a;--text:#2e7d32;--text2:#555;--gold:#ffc107;--shadow:0 2px 12px rgba(0,0,0,.1)}
+:root{--bg:transparent;--card:rgba(255,255,255,.92);--accent:#4caf50;--accent2:#66bb6a;--text:#2e7d32;--text2:#555;--gold:#ffc107;--shadow:0 2px 12px rgba(0,0,0,.1)}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;display:flex;flex-direction:column;align-items:center}
+.nature-bg{position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;transition:all 1.5s ease;pointer-events:none}
+.nature-bg .sky{position:absolute;top:0;left:0;right:0;height:55%;transition:background 1.5s ease}
+.nature-bg .ground-bg{position:absolute;bottom:0;left:0;right:0;height:50%;transition:background 1.5s ease}
+.nature-bg .sun-el{position:absolute;width:60px;height:60px;border-radius:50%;top:30px;right:40px;transition:all 1.5s ease;box-shadow:0 0 40px var(--sun-glow,rgba(255,235,59,.5))}
+.nature-bg .clouds{position:absolute;top:0;left:0;right:0;height:50%;overflow:hidden}
+.nature-bg .cloud{position:absolute;font-size:2.5rem;opacity:.35;animation:cloudDrift linear infinite;pointer-events:none}
+@keyframes cloudDrift{0%{transform:translateX(-80px)}100%{transform:translateX(calc(100vw + 80px))}}
+.nature-bg .ground-deco{position:absolute;bottom:0;left:0;right:0;height:30%;overflow:hidden}
+.nature-bg .ground-item{position:absolute;bottom:0;font-size:1.2rem;opacity:.5}
 .top-bar{position:sticky;top:0;z-index:100;width:100%;max-width:480px;background:linear-gradient(135deg,#43a047,#66bb6a);color:#fff;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;border-radius:0 0 18px 18px;box-shadow:var(--shadow)}
 .top-bar h1{font-size:1.1rem;letter-spacing:.5px}
 .music-btn{background:none;border:2px solid rgba(255,255,255,.4);color:#fff;border-radius:50%;width:32px;height:32px;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
@@ -16,7 +25,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .score-display{font-size:1.3rem;font-weight:700}
 .score-display span{color:var(--gold)}
 .per-sec{font-size:.7rem;opacity:.85}
-.game-area{width:100%;max-width:480px;flex:1;display:flex;flex-direction:column;align-items:center;padding:10px}
+.game-area{width:100%;max-width:480px;flex:1;display:flex;flex-direction:column;align-items:center;padding:10px;position:relative;z-index:2}
 .plant-container{position:relative;width:220px;height:260px;margin:18px auto 10px;cursor:pointer;display:flex;align-items:flex-end;justify-content:center}
 .plant-container:active{transform:scale(.95)}
 .plant-svg{width:100%;height:100%;transition:all .3s}
@@ -79,7 +88,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .cheat-btn{padding:8px 16px;border:none;background:linear-gradient(135deg,#7c4dff,#536dfe);color:#fff;border-radius:10px;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
 .cheat-btn:hover{background:linear-gradient(135deg,#651fff,#304ffe);transform:scale(1.04)}
 .cheat-btn:active{transform:scale(.96)}
-.reset-corner{position:fixed;top:12px;right:12px;z-index:300}
+.reset-corner{position:fixed;bottom:12px;right:12px;z-index:300}
 .reset-btn{background:linear-gradient(135deg,#ef5350,#e53935);color:#fff;border:2px solid rgba(255,255,255,.5);border-radius:10px;padding:6px 12px;font-size:.72rem;font-weight:700;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.2);transition:all .3s;font-family:inherit}
 .reset-btn:hover{transform:scale(1.08);box-shadow:0 4px 16px rgba(0,0,0,.3)}
 .reset-confirm{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
@@ -95,8 +104,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .reset-no{background:#e0e0e0;color:#555}
 .reset-no:hover{background:#bdbdbd}
 .cheat-msg{text-align:center;font-size:.75rem;color:#7c4dff;margin-bottom:6px;min-height:18px;font-weight:600;transition:opacity .3s}
-.qr-corner{position:fixed;top:12px;left:12px;z-index:300;cursor:pointer;transition:all .3s ease}
-.qr-corner img{width:48px;height:48px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.2);border:2px solid #fff;transition:all .3s ease;display:block}
+.qr-corner{position:fixed;bottom:12px;left:12px;z-index:300;cursor:pointer;transition:all .3s ease}
+.qr-corner img{width:40px;height:40px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.2);border:2px solid #fff;transition:all .3s ease;display:block}
 .qr-corner:hover img{transform:scale(1.1);box-shadow:0 4px 16px rgba(0,0,0,.3)}
 .fauna-layer{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:1;overflow:hidden}
 .fauna{position:absolute;font-size:1.6rem;transition:none;will-change:transform;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
@@ -117,6 +126,13 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 </head>
 <body>
 
+<div class="nature-bg" id="natureBg">
+  <div class="sky"></div>
+  <div class="sun-el"></div>
+  <div class="clouds" id="cloudsLayer"></div>
+  <div class="ground-bg"></div>
+  <div class="ground-deco" id="groundDeco"></div>
+</div>
 <div class="fauna-layer" id="faunaLayer"></div>
 
 <div class="qr-corner" id="qrCorner" title="QR-kood">
@@ -524,6 +540,7 @@ function selectPlant(i){
   state.growth=0;
   state.stage=0;
   renderAll();
+  renderNatureBg();
   saveState();
   MusicEngine.onPlantChange();
 }
@@ -1016,11 +1033,11 @@ qrClose.addEventListener('click',()=>qrOverlay.classList.remove('show'));
 qrOverlay.addEventListener('click',(e)=>{if(e.target===qrOverlay)qrOverlay.classList.remove('show');});
 
 // =================== FAUNA (background animals & birds) ===================
-const GROUND_ANIMALS=['🐰','🦊','🐿️','🐌','🦔','🐇','🐈','🐕','🐛','🐢','🐜','🐞'];
-const SKY_CREATURES=['🐦','🕊️','🦅','🦜','🦋','🐝','🦆','🦇'];
+const GROUND_ANIMALS=['🐰','🦊','🐿️','🐌','🦔','🐇','🐈','🐕','🐛','🐢','🐜','🐞','🦎','🐸','🐾','🦡','🐁','🐀','🦥','🦫','🐏','🐐','🦌','🐄','🐖','🐑','🦃','🐓','🦨','🐊'];
+const SKY_CREATURES=['🐦','🕊️','🦅','🦜','🦋','🐝','🦆','🦇','🪶','🦩','🦚','🐧','🦢','🪺','🐦‍⬛','🦤','🦉','🪰','🪲','🐞'];
 const faunaLayer=document.getElementById('faunaLayer');
 let faunaCount=0;
-const MAX_FAUNA=6;
+const MAX_FAUNA=10;
 
 function spawnFauna(){
   if(faunaCount>=MAX_FAUNA)return;
@@ -1062,13 +1079,72 @@ function spawnFauna(){
 }
 
 setInterval(()=>{
-  if(Math.random()<0.6)spawnFauna();
-},2500);
-setTimeout(spawnFauna,500);
-setTimeout(spawnFauna,1500);
+  if(Math.random()<0.7)spawnFauna();
+},1800);
+setTimeout(spawnFauna,300);
+setTimeout(spawnFauna,800);
+setTimeout(spawnFauna,1400);
+
+// =================== NATURE BACKGROUNDS ===================
+const NATURE_THEMES={
+  daisy:{sky:'linear-gradient(180deg,#87ceeb 0%,#b3e5fc 60%,#e1f5fe 100%)',ground:'linear-gradient(0deg,#4caf50 0%,#66bb6a 30%,#81c784 60%,#a5d6a7 100%)',sun:'#ffeb3b',sunGlow:'rgba(255,235,59,.5)',decoItems:['🌼','🌼','🌾','🌿','🍀','🌻','🌼'],cloudEmoji:['☁️','⛅'],cloudCount:3},
+  tulip:{sky:'linear-gradient(180deg,#b39ddb 0%,#ce93d8 40%,#e1bee7 100%)',ground:'linear-gradient(0deg,#388e3c 0%,#43a047 30%,#66bb6a 60%,#a5d6a7 100%)',sun:'#ffd54f',sunGlow:'rgba(255,213,79,.4)',decoItems:['🌷','🌷','🌷','🏵️','🍃','🌿'],cloudEmoji:['☁️','🌥️'],cloudCount:2},
+  sunflower:{sky:'linear-gradient(180deg,#ffcc02 0%,#ffe082 30%,#fff9c4 60%,#fffde7 100%)',ground:'linear-gradient(0deg,#558b2f 0%,#689f38 30%,#7cb342 60%,#9ccc65 100%)',sun:'#ff8f00',sunGlow:'rgba(255,143,0,.6)',decoItems:['🌻','🌻','🌻','🌾','🌾','🌿'],cloudEmoji:['☀️'],cloudCount:1},
+  rose:{sky:'linear-gradient(180deg,#f8bbd0 0%,#f48fb1 40%,#fce4ec 100%)',ground:'linear-gradient(0deg,#2e7d32 0%,#388e3c 30%,#4caf50 60%,#81c784 100%)',sun:'#f48fb1',sunGlow:'rgba(244,143,177,.4)',decoItems:['🌹','🌹','🌺','🥀','🍃','🏵️','🌹'],cloudEmoji:['☁️','💭'],cloudCount:3},
+  sakura:{sky:'linear-gradient(180deg,#fce4ec 0%,#f8bbd0 30%,#f48fb1 80%,#e1bee7 100%)',ground:'linear-gradient(0deg,#5d4037 0%,#6d4c41 30%,#8d6e63 50%,#a1887f 100%)',sun:'#fff176',sunGlow:'rgba(255,241,118,.4)',decoItems:['🌸','🌸','🌸','🎎','🏯','🍃','🌸','🎋'],cloudEmoji:['☁️','🌸'],cloudCount:4},
+  cactus:{sky:'linear-gradient(180deg,#ff8a65 0%,#ffab91 40%,#ffe0b2 80%,#fff3e0 100%)',ground:'linear-gradient(0deg,#bf8040 0%,#d4a056 30%,#e6c47f 60%,#f0dca0 100%)',sun:'#ff6f00',sunGlow:'rgba(255,111,0,.5)',decoItems:['🌵','🌵','🏜️','🦂','💀','🪨','🌵'],cloudEmoji:['🌤️'],cloudCount:1},
+  orchid:{sky:'linear-gradient(180deg,#1b5e20 0%,#2e7d32 30%,#388e3c 60%,#4caf50 100%)',ground:'linear-gradient(0deg,#3e2723 0%,#4e342e 30%,#5d4037 60%,#6d4c41 100%)',sun:'#a5d6a7',sunGlow:'rgba(165,214,167,.3)',decoItems:['🪻','🌺','🌴','🍃','🦜','🌿','🪴','🍀'],cloudEmoji:['🌧️','☁️','🌥️'],cloudCount:3},
+  bamboo:{sky:'linear-gradient(180deg,#90a4ae 0%,#b0bec5 30%,#cfd8dc 60%,#eceff1 100%)',ground:'linear-gradient(0deg,#33691e 0%,#558b2f 30%,#689f38 60%,#8bc34a 100%)',sun:'#e0e0e0',sunGlow:'rgba(224,224,224,.3)',decoItems:['🎋','🎋','🎋','🍃','🐼','🍵','🎋','🏔️'],cloudEmoji:['🌫️','☁️','🌥️'],cloudCount:5},
+  lotus:{sky:'linear-gradient(180deg,#4fc3f7 0%,#81d4fa 30%,#b3e5fc 50%,#e1f5fe 100%)',ground:'linear-gradient(0deg,#0277bd 0%,#0288d1 20%,#039be5 40%,#4fc3f7 70%,#81d4fa 100%)',sun:'#fff59d',sunGlow:'rgba(255,245,157,.4)',decoItems:['🪷','🪷','🐟','🐠','💧','🍃','🪷','🪸'],cloudEmoji:['☁️','⛅'],cloudCount:2},
+  lifetree:{sky:'linear-gradient(180deg,#1a237e 0%,#283593 20%,#3949ab 40%,#7c4dff 70%,#b388ff 100%)',ground:'linear-gradient(0deg,#1b5e20 0%,#2e7d32 30%,#388e3c 60%,#4caf50 100%)',sun:'#e1bee7',sunGlow:'rgba(225,190,231,.6)',decoItems:['🌳','✨','🍄','🦌','⭐','🌙','🌳','✨','🧚'],cloudEmoji:['✨','🌟','⭐'],cloudCount:4}
+};
+
+let curBgPlant='';
+function renderNatureBg(){
+  const pid=currentPlant().id;
+  if(pid===curBgPlant)return;
+  curBgPlant=pid;
+  const th=NATURE_THEMES[pid]||NATURE_THEMES.daisy;
+  const bg=document.getElementById('natureBg');
+  bg.querySelector('.sky').style.background=th.sky;
+  bg.querySelector('.ground-bg').style.background=th.ground;
+  const sunEl=bg.querySelector('.sun-el');
+  sunEl.style.background=th.sun;
+  sunEl.style.setProperty('--sun-glow',th.sunGlow);
+  sunEl.style.boxShadow='0 0 40px '+th.sunGlow+',0 0 80px '+th.sunGlow;
+  // Clouds
+  const cl=document.getElementById('cloudsLayer');
+  cl.innerHTML='';
+  for(let i=0;i<th.cloudCount;i++){
+    const c=document.createElement('div');
+    c.className='cloud';
+    c.textContent=th.cloudEmoji[i%th.cloudEmoji.length];
+    c.style.top=(10+Math.random()*35)+'%';
+    c.style.animationDuration=(25+Math.random()*35)+'s';
+    c.style.animationDelay=(-Math.random()*30)+'s';
+    c.style.fontSize=(1.8+Math.random()*1.5)+'rem';
+    c.style.opacity=0.2+Math.random()*0.25;
+    cl.appendChild(c);
+  }
+  // Ground deco
+  const gd=document.getElementById('groundDeco');
+  gd.innerHTML='';
+  const items=th.decoItems;
+  for(let i=0;i<items.length;i++){
+    const d=document.createElement('div');
+    d.className='ground-item';
+    d.textContent=items[i];
+    d.style.left=(5+i*(90/items.length)+Math.random()*5)+'%';
+    d.style.bottom=(0+Math.random()*15)+'%';
+    d.style.fontSize=(0.9+Math.random()*0.8)+'rem';
+    d.style.opacity=0.3+Math.random()*0.3;
+    gd.appendChild(d);
+  }
+}
 
 // =================== INIT ===================
 renderAll();
+renderNatureBg();
 gameLoop();
 </script>
 </body>
