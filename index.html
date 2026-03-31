@@ -98,6 +98,13 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .qr-corner{position:fixed;top:12px;left:12px;z-index:300;cursor:pointer;transition:all .3s ease}
 .qr-corner img{width:48px;height:48px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.2);border:2px solid #fff;transition:all .3s ease;display:block}
 .qr-corner:hover img{transform:scale(1.1);box-shadow:0 4px 16px rgba(0,0,0,.3)}
+.fauna-layer{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:1;overflow:hidden}
+.fauna{position:absolute;font-size:1.6rem;transition:none;will-change:transform;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
+.fauna.ground{bottom:8px;animation:walkAcross var(--dur) linear forwards}
+.fauna.sky{animation:flyAcross var(--dur) linear forwards}
+.fauna.flip{transform:scaleX(-1)}
+@keyframes walkAcross{0%{transform:translateX(var(--startX)) translateY(0) scaleX(var(--dirX))}15%{transform:translateX(calc(var(--startX) + (var(--endX) - var(--startX))*.15)) translateY(-6px) scaleX(var(--dirX))}30%{transform:translateX(calc(var(--startX) + (var(--endX) - var(--startX))*.3)) translateY(0) scaleX(var(--dirX))}45%{transform:translateX(calc(var(--startX) + (var(--endX) - var(--startX))*.45)) translateY(-6px) scaleX(var(--dirX))}60%{transform:translateX(calc(var(--startX) + (var(--endX) - var(--startX))*.6)) translateY(0) scaleX(var(--dirX))}75%{transform:translateX(calc(var(--startX) + (var(--endX) - var(--startX))*.75)) translateY(-6px) scaleX(var(--dirX))}90%{transform:translateX(calc(var(--startX) + (var(--endX) - var(--startX))*.9)) translateY(0) scaleX(var(--dirX))}100%{transform:translateX(var(--endX)) translateY(-3px) scaleX(var(--dirX))}}
+@keyframes flyAcross{0%{transform:translate(var(--startX),var(--startY)) scaleX(var(--dirX))}20%{transform:translate(calc(var(--startX) + (var(--endX) - var(--startX))*.2),calc(var(--startY) + var(--wave1))) scaleX(var(--dirX))}40%{transform:translate(calc(var(--startX) + (var(--endX) - var(--startX))*.4),calc(var(--startY) + var(--wave2))) scaleX(var(--dirX))}60%{transform:translate(calc(var(--startX) + (var(--endX) - var(--startX))*.6),calc(var(--startY) + var(--wave1))) scaleX(var(--dirX))}80%{transform:translate(calc(var(--startX) + (var(--endX) - var(--startX))*.8),calc(var(--startY) + var(--wave2))) scaleX(var(--dirX))}100%{transform:translate(var(--endX),var(--endY)) scaleX(var(--dirX))}}
 .qr-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:400;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
 .qr-overlay.show{opacity:1;pointer-events:all}
 .qr-big{background:#fff;border-radius:20px;padding:24px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.3);transform:scale(.7);transition:transform .3s}
@@ -110,14 +117,16 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 </head>
 <body>
 
+<div class="fauna-layer" id="faunaLayer"></div>
+
 <div class="qr-corner" id="qrCorner" title="QR-kood">
-  <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fvahtrasjoel399-web.github.io%2Fbiology%2F" alt="QR">
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fbiology-drab.vercel.app%2F" alt="QR">
 </div>
 <div class="qr-overlay" id="qrOverlay">
   <div class="qr-big">
-    <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https%3A%2F%2Fvahtrasjoel399-web.github.io%2Fbiology%2F" alt="QR">
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https%3A%2F%2Fbiology-drab.vercel.app%2F" alt="QR">
     <p>📱 Skaneeri, et mängida!</p>
-    <div class="qr-url">https://vahtrasjoel399-web.github.io/biology/</div>
+    <div class="qr-url">https://biology-drab.vercel.app/</div>
     <button class="qr-close" id="qrClose">Sulge</button>
   </div>
 </div>
@@ -1005,6 +1014,58 @@ const qrClose=document.getElementById('qrClose');
 qrCorner.addEventListener('click',()=>qrOverlay.classList.add('show'));
 qrClose.addEventListener('click',()=>qrOverlay.classList.remove('show'));
 qrOverlay.addEventListener('click',(e)=>{if(e.target===qrOverlay)qrOverlay.classList.remove('show');});
+
+// =================== FAUNA (background animals & birds) ===================
+const GROUND_ANIMALS=['🐰','🦊','🐿️','🐌','🦔','🐇','🐈','🐕','🐛','🐢','🐜','🐞'];
+const SKY_CREATURES=['🐦','🕊️','🦅','🦜','🦋','🐝','🦆','🦇'];
+const faunaLayer=document.getElementById('faunaLayer');
+let faunaCount=0;
+const MAX_FAUNA=6;
+
+function spawnFauna(){
+  if(faunaCount>=MAX_FAUNA)return;
+  const isSky=Math.random()<0.4;
+  const pool=isSky?SKY_CREATURES:GROUND_ANIMALS;
+  const emoji=pool[Math.floor(Math.random()*pool.length)];
+  const el=document.createElement('div');
+  el.className='fauna '+(isSky?'sky':'ground');
+  el.textContent=emoji;
+  const goRight=Math.random()<0.5;
+  const vw=window.innerWidth;
+  const startX=goRight?(-50):(vw+50);
+  const endX=goRight?(vw+50):(-50);
+  const dirX=goRight?1:-1;
+  const dur=8+Math.random()*14; // 8-22 seconds
+  el.style.setProperty('--startX',startX+'px');
+  el.style.setProperty('--endX',endX+'px');
+  el.style.setProperty('--dirX',dirX);
+  el.style.setProperty('--dur',dur+'s');
+  el.style.fontSize=(1.2+Math.random()*1.4)+'rem';
+  if(isSky){
+    const sy=30+Math.random()*200;
+    const ey=sy+(-40+Math.random()*80);
+    el.style.setProperty('--startY',sy+'px');
+    el.style.setProperty('--endY',ey+'px');
+    el.style.setProperty('--wave1',(-20-Math.random()*30)+'px');
+    el.style.setProperty('--wave2',(15+Math.random()*25)+'px');
+    el.style.top='0';
+  }else{
+    const bottomY=4+Math.random()*40;
+    el.style.bottom=bottomY+'px';
+  }
+  faunaLayer.appendChild(el);
+  faunaCount++;
+  el.addEventListener('animationend',()=>{
+    el.remove();
+    faunaCount--;
+  });
+}
+
+setInterval(()=>{
+  if(Math.random()<0.6)spawnFauna();
+},2500);
+setTimeout(spawnFauna,500);
+setTimeout(spawnFauna,1500);
 
 // =================== INIT ===================
 renderAll();
