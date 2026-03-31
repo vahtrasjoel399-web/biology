@@ -79,10 +79,62 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .cheat-btn{padding:8px 16px;border:none;background:linear-gradient(135deg,#7c4dff,#536dfe);color:#fff;border-radius:10px;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
 .cheat-btn:hover{background:linear-gradient(135deg,#651fff,#304ffe);transform:scale(1.04)}
 .cheat-btn:active{transform:scale(.96)}
+.reset-corner{position:fixed;top:12px;right:12px;z-index:300}
+.reset-btn{background:linear-gradient(135deg,#ef5350,#e53935);color:#fff;border:2px solid rgba(255,255,255,.5);border-radius:10px;padding:6px 12px;font-size:.72rem;font-weight:700;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.2);transition:all .3s;font-family:inherit}
+.reset-btn:hover{transform:scale(1.08);box-shadow:0 4px 16px rgba(0,0,0,.3)}
+.reset-confirm{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
+.reset-confirm.show{opacity:1;pointer-events:all}
+.reset-box{background:#fff;border-radius:18px;padding:24px;text-align:center;max-width:280px;width:90%;box-shadow:0 8px 30px rgba(0,0,0,.25);transform:scale(.8);transition:transform .3s}
+.reset-confirm.show .reset-box{transform:scale(1)}
+.reset-box p{font-size:.9rem;font-weight:700;color:var(--text);margin-bottom:6px}
+.reset-box .reset-sub{font-size:.75rem;color:#999;margin-bottom:16px}
+.reset-box-btns{display:flex;gap:10px;justify-content:center}
+.reset-box-btns button{padding:9px 20px;border:none;border-radius:10px;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .2s}
+.reset-yes{background:#ef5350;color:#fff}
+.reset-yes:hover{background:#c62828}
+.reset-no{background:#e0e0e0;color:#555}
+.reset-no:hover{background:#bdbdbd}
 .cheat-msg{text-align:center;font-size:.75rem;color:#7c4dff;margin-bottom:6px;min-height:18px;font-weight:600;transition:opacity .3s}
+.qr-corner{position:fixed;top:12px;left:12px;z-index:300;cursor:pointer;transition:all .3s ease}
+.qr-corner img{width:48px;height:48px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.2);border:2px solid #fff;transition:all .3s ease;display:block}
+.qr-corner:hover img{transform:scale(1.1);box-shadow:0 4px 16px rgba(0,0,0,.3)}
+.qr-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:400;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
+.qr-overlay.show{opacity:1;pointer-events:all}
+.qr-big{background:#fff;border-radius:20px;padding:24px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.3);transform:scale(.7);transition:transform .3s}
+.qr-overlay.show .qr-big{transform:scale(1)}
+.qr-big img{width:220px;height:220px;border-radius:10px}
+.qr-big p{margin-top:12px;font-size:.85rem;color:var(--text2);font-weight:600}
+.qr-big .qr-url{font-size:.7rem;color:#888;word-break:break-all;margin-top:4px}
+.qr-big .qr-close{margin-top:12px;padding:8px 24px;border:none;background:var(--accent);color:#fff;border-radius:10px;font-size:.85rem;font-weight:700;cursor:pointer}
 </style>
 </head>
 <body>
+
+<div class="qr-corner" id="qrCorner" title="QR-kood">
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fvahtrasjoel399-web.github.io%2Fbiology%2F" alt="QR">
+</div>
+<div class="qr-overlay" id="qrOverlay">
+  <div class="qr-big">
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https%3A%2F%2Fvahtrasjoel399-web.github.io%2Fbiology%2F" alt="QR">
+    <p>📱 Skaneeri, et mängida!</p>
+    <div class="qr-url">https://vahtrasjoel399-web.github.io/biology/</div>
+    <button class="qr-close" id="qrClose">Sulge</button>
+  </div>
+</div>
+
+<div class="reset-corner">
+  <button class="reset-btn" id="resetBtn">🔄 Uus mäng</button>
+</div>
+<div class="reset-confirm" id="resetConfirm">
+  <div class="reset-box">
+    <p>⚠️ Alusta uut mängu?</p>
+    <div class="reset-sub">Kogu edenemine kustutatakse!</div>
+    <div class="reset-box-btns">
+      <button class="reset-yes" id="resetYes">Jah, alusta</button>
+      <button class="reset-no" id="resetNo">Tühista</button>
+    </div>
+  </div>
+</div>
 
 <div class="top-bar">
   <div>
@@ -846,6 +898,16 @@ musicBtn.addEventListener('click',function(){
   updateMusicBtn();
 });
 // Restore music pref after first user interaction
+// =================== RESET ===================
+document.getElementById('resetBtn').onclick=()=>{document.getElementById('resetConfirm').classList.add('show')};
+document.getElementById('resetNo').onclick=()=>{document.getElementById('resetConfirm').classList.remove('show')};
+document.getElementById('resetYes').onclick=()=>{
+  localStorage.removeItem('plantTapper');
+  localStorage.removeItem('plantTapper_music');
+  location.reload();
+};
+document.getElementById('resetConfirm').onclick=(e)=>{if(e.target===document.getElementById('resetConfirm'))document.getElementById('resetConfirm').classList.remove('show')};
+
 if(localStorage.getItem('plantTapper_music')==='1'){
   const startOnce=()=>{
     MusicEngine.start();
@@ -892,21 +954,30 @@ function activateCheat(){
   }
 
   if(code==='koos'){
+    if(kosMusic&&kosMusic.playing){
+      showCheatMsg('⚠️ Muusika juba mängib! Peatamiseks sisesta "koos stop"','#ff9800');
+      return;
+    }
     playKosMusic();
-    showCheatMsg('\uD83C\uDFB5 Salajane muusika aktiveeritud!','#e91e63');
+    showCheatMsg('🎵 Salajane muusika aktiveeritud!','#e91e63');
     return;
   }
 
-  showCheatMsg('\u274C Tundmatu kood: "'+code+'"','#f44336');
+  if(code==='koos stop'){
+    if(kosMusic&&kosMusic.playing){
+      kosMusic.stop();
+      showCheatMsg('🎵 Salajane muusika peatatud!','#ff9800');
+    } else {
+      showCheatMsg('⚠️ Muusika ei mängi praegu.','#ff9800');
+    }
+    return;
+  }
+
+  showCheatMsg('❌ Tundmatu kood: "'+code+'"','#f44336');
 }
 
 function playKosMusic(){
   // Play hidden MP3 track "kos.mp3"
-  if(kosMusic&&kosMusic.playing){
-    kosMusic.stop();
-    showCheatMsg('\uD83C\uDFB5 Salajane muusika peatatud!','#ff9800');
-    return;
-  }
   const audio=new Audio('kos.mp3');
   audio.loop=true;
   audio.volume=0.5;
@@ -926,6 +997,14 @@ cheatBtn.addEventListener('click',activateCheat);
 cheatInput.addEventListener('keydown',function(e){
   if(e.key==='Enter'){e.preventDefault();activateCheat();}
 });
+
+// =================== QR CODE ===================
+const qrCorner=document.getElementById('qrCorner');
+const qrOverlay=document.getElementById('qrOverlay');
+const qrClose=document.getElementById('qrClose');
+qrCorner.addEventListener('click',()=>qrOverlay.classList.add('show'));
+qrClose.addEventListener('click',()=>qrOverlay.classList.remove('show'));
+qrOverlay.addEventListener('click',(e)=>{if(e.target===qrOverlay)qrOverlay.classList.remove('show');});
 
 // =================== INIT ===================
 renderAll();
