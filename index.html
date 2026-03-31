@@ -72,6 +72,14 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .shake{animation:shake .15s}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 @media(max-width:400px){.plant-container{width:180px;height:220px}.top-bar h1{font-size:.95rem}.score-display{font-size:1.1rem}}
+.cheat-bar{width:100%;max-width:440px;display:flex;gap:6px;padding:0 6px;margin-bottom:8px}
+.cheat-input{flex:1;padding:8px 12px;border:2px solid #c8e6c9;border-radius:10px;font-size:.82rem;outline:none;transition:border .2s;font-family:inherit;background:#f9fbe7}
+.cheat-input:focus{border-color:var(--accent)}
+.cheat-input::placeholder{color:#aaa;font-style:italic}
+.cheat-btn{padding:8px 16px;border:none;background:linear-gradient(135deg,#7c4dff,#536dfe);color:#fff;border-radius:10px;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
+.cheat-btn:hover{background:linear-gradient(135deg,#651fff,#304ffe);transform:scale(1.04)}
+.cheat-btn:active{transform:scale(.96)}
+.cheat-msg{text-align:center;font-size:.75rem;color:#7c4dff;margin-bottom:6px;min-height:18px;font-weight:600;transition:opacity .3s}
 </style>
 </head>
 <body>
@@ -100,6 +108,12 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
   </div>
   <div class="tap-hint">Puuduta taime!</div>
 
+  <div class="cheat-bar">
+    <input type="text" class="cheat-input" id="cheatInput" placeholder="Sisesta kood..." maxlength="20" autocomplete="off" spellcheck="false">
+    <button class="cheat-btn" id="cheatBtn">Aktiveeri</button>
+  </div>
+  <div class="cheat-msg" id="cheatMsg"></div>
+
   <div class="tabs">
     <button class="tab-btn active" data-tab="upgrades">Täiendused</button>
     <button class="tab-btn" data-tab="plants">Taimed</button>
@@ -122,12 +136,16 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 <script>
 // =================== DATA ===================
 const PLANTS = [
-  {id:'daisy',name:'Kummel',emoji:'🌼',unlock:0,mult:1,color:'#fff176',center:'#ff8f00'},
-  {id:'tulip',name:'Tulp',emoji:'🌷',unlock:500,mult:1.3,color:'#ef5350',center:'#c62828'},
-  {id:'sunflower',name:'Päevalill',emoji:'🌻',unlock:3000,mult:1.7,color:'#fdd835',center:'#5d4037'},
-  {id:'rose',name:'Roos',emoji:'🌹',unlock:15000,mult:2.2,color:'#e91e63',center:'#880e4f'},
-  {id:'sakura',name:'Sakura',emoji:'🌸',unlock:80000,mult:3,color:'#f8bbd0',center:'#ad1457'},
-  {id:'cactus',name:'Kaktus',emoji:'🌵',unlock:400000,mult:4,color:'#66bb6a',center:'#2e7d32'}
+  {id:'daisy',name:'Kummel',emoji:'🌼',unlock:0,mult:1,diff:1,color:'#fff176',center:'#ff8f00'},
+  {id:'tulip',name:'Tulp',emoji:'🌷',unlock:500,mult:1.3,diff:2.5,color:'#ef5350',center:'#c62828'},
+  {id:'sunflower',name:'Päevalill',emoji:'🌻',unlock:3000,mult:1.7,diff:5,color:'#fdd835',center:'#5d4037'},
+  {id:'rose',name:'Roos',emoji:'🌹',unlock:15000,mult:2.2,diff:10,color:'#e91e63',center:'#880e4f'},
+  {id:'sakura',name:'Sakura',emoji:'🌸',unlock:80000,mult:3,diff:20,color:'#f8bbd0',center:'#ad1457'},
+  {id:'cactus',name:'Kaktus',emoji:'🌵',unlock:400000,mult:4,diff:40,color:'#66bb6a',center:'#2e7d32'},
+  {id:'orchid',name:'Orhidee',emoji:'🪻',unlock:2000000,mult:5.5,diff:80,color:'#ce93d8',center:'#6a1b9a'},
+  {id:'bamboo',name:'Bambus',emoji:'🎋',unlock:10000000,mult:7.5,diff:150,color:'#a5d6a7',center:'#1b5e20'},
+  {id:'lotus',name:'Lootuslill',emoji:'🪷',unlock:50000000,mult:10,diff:300,color:'#f48fb1',center:'#d81b60'},
+  {id:'lifetree',name:'Elupuu',emoji:'🌳',unlock:250000000,mult:15,diff:600,color:'#c6ff00',center:'#827717'}
 ];
 
 const STAGES = [
@@ -197,11 +215,12 @@ function upgradeCost(u){
 function currentPlant(){return PLANTS[state.plantIdx];}
 
 function stageNeed(){
-  if(state.stage>=STAGES.length-1) return STAGES[STAGES.length-1].need*2;
-  return STAGES[state.stage+1].need;
+  const d=currentPlant().diff;
+  if(state.stage>=STAGES.length-1) return Math.floor(STAGES[STAGES.length-1].need*2*d);
+  return Math.floor(STAGES[state.stage+1].need*d);
 }
 
-function stagePrev(){return STAGES[state.stage].need;}
+function stagePrev(){return Math.floor(STAGES[state.stage].need*currentPlant().diff);}
 
 // =================== RENDER PLANT SVG ===================
 function stageProgress(){
@@ -364,7 +383,7 @@ function renderPlants(){
       <div class="plant-card-icon">${p.emoji}</div>
       <div class="plant-card-info">
         <div class="plant-card-name">${p.name} ${completed?'✅':''}</div>
-        <div class="plant-card-desc">Kordaja: ×${p.mult} ${!unlocked?'| Vaja: 🪙'+formatNum(p.unlock):''}</div>
+        <div class="plant-card-desc">Kordaja: ×${p.mult} | Raskus: ×${p.diff} ${!unlocked?'| Vaja: 🪙'+formatNum(p.unlock):''}</div>
       </div>
       ${unlocked&&!isCurrent?`<button class="plant-select-btn" onclick="selectPlant(${i})">Vali</button>`:''}
       ${isCurrent?'<span style="color:var(--accent);font-weight:700;font-size:.8rem">▶ Praegu</span>':''}
@@ -627,6 +646,38 @@ const MusicEngine=(function(){
       bass:[110,123.47,110,98,110,123.47,110,98],
       tempo:380, beatPat:[1,1,0,0,1,1,0,1], padWave:'sawtooth', melWave:'square',
       filterFreq:1400, melVol:0.03, padVol:0.05, bassVol:0.08, swing:0.01
+    },
+    orchid:{
+      // Mysterious tropical, Eb minor, lush
+      chords:[[311.13,369.99,466.16],[329.63,392,493.88],[293.66,369.99,440],[311.13,392,466.16],[349.23,415.3,523.25],[311.13,369.99,466.16],[329.63,415.3,493.88],[293.66,369.99,440]],
+      melody:[622.25,739.99,830.61,932.33,830.61,739.99,622.25,554.37],
+      bass:[155.56,164.81,146.83,155.56,174.61,155.56,164.81,146.83],
+      tempo:500, beatPat:[1,0,1,0,0,1,0,1], padWave:'sine', melWave:'sine',
+      filterFreq:950, melVol:0.07, padVol:0.09, bassVol:0.05, swing:0.07
+    },
+    bamboo:{
+      // Asian inspired, pentatonic, flowing like water
+      chords:[[261.63,329.63,392],[293.66,392,440],[261.63,349.23,440],[329.63,392,523.25],[293.66,349.23,440],[261.63,329.63,392],[293.66,392,523.25],[261.63,349.23,440]],
+      melody:[523.25,659.25,783.99,880,783.99,659.25,587.33,523.25],
+      bass:[130.81,146.83,130.81,164.81,146.83,130.81,146.83,130.81],
+      tempo:440, beatPat:[1,0,0,1,0,0,1,0], padWave:'triangle', melWave:'triangle',
+      filterFreq:1100, melVol:0.06, padVol:0.07, bassVol:0.04, swing:0.09
+    },
+    lotus:{
+      // Dreamy, ethereal, floaty, Lydian feel
+      chords:[[261.63,329.63,392],[293.66,369.99,440],[329.63,415.3,493.88],[349.23,440,523.25],[293.66,369.99,440],[261.63,329.63,392],[329.63,415.3,493.88],[293.66,369.99,440]],
+      melody:[659.25,739.99,830.61,987.77,880,739.99,659.25,587.33],
+      bass:[130.81,146.83,164.81,174.61,146.83,130.81,164.81,146.83],
+      tempo:580, beatPat:[1,0,0,0,1,0,0,1], padWave:'sine', melWave:'sine',
+      filterFreq:800, melVol:0.08, padVol:0.1, bassVol:0.04, swing:0.1
+    },
+    lifetree:{
+      // Epic, majestic, full orchestra feel, D major
+      chords:[[293.66,369.99,440],[329.63,415.3,493.88],[349.23,440,523.25],[392,493.88,587.33],[349.23,440,523.25],[329.63,415.3,493.88],[293.66,369.99,440],[392,493.88,587.33]],
+      melody:[587.33,659.25,739.99,880,987.77,880,739.99,659.25],
+      bass:[146.83,164.81,174.61,196,174.61,164.81,146.83,196],
+      tempo:460, beatPat:[1,1,0,1,1,0,1,1], padWave:'sine', melWave:'triangle',
+      filterFreq:1600, melVol:0.07, padVol:0.09, bassVol:0.07, swing:0.04
     }
   };
 
@@ -805,6 +856,76 @@ if(localStorage.getItem('plantTapper_music')==='1'){
   document.addEventListener('click',startOnce,{once:false});
   document.addEventListener('touchstart',startOnce,{once:false});
 }
+
+// =================== CHEAT CODES ===================
+const cheatInput=document.getElementById('cheatInput');
+const cheatBtn=document.getElementById('cheatBtn');
+const cheatMsg=document.getElementById('cheatMsg');
+
+let kosMusic=null; // hidden music for "kos" cheat
+
+function showCheatMsg(text,color){
+  cheatMsg.textContent=text;
+  cheatMsg.style.color=color||'#7c4dff';
+  cheatMsg.style.opacity='1';
+  setTimeout(()=>{cheatMsg.style.opacity='0';},3000);
+}
+
+function activateCheat(){
+  const code=cheatInput.value.trim().toLowerCase();
+  cheatInput.value='';
+  if(!code)return;
+
+  if(code==='money'){
+    state.score+=999999999;
+    state.totalScore+=999999999;
+    // Unlock all plants
+    for(let i=0;i<PLANTS.length;i++){
+      if(!state.unlockedPlants.includes(i)){
+        state.unlockedPlants.push(i);
+      }
+    }
+    saveState();
+    renderAll();
+    showCheatMsg('\uD83D\uDCB0 999 999 999 punkti lisatud! Kõik taimed avatud!','#4caf50');
+    return;
+  }
+
+  if(code==='koos'){
+    playKosMusic();
+    showCheatMsg('\uD83C\uDFB5 Salajane muusika aktiveeritud!','#e91e63');
+    return;
+  }
+
+  showCheatMsg('\u274C Tundmatu kood: "'+code+'"','#f44336');
+}
+
+function playKosMusic(){
+  // Play hidden MP3 track "kos.mp3"
+  if(kosMusic&&kosMusic.playing){
+    kosMusic.stop();
+    showCheatMsg('\uD83C\uDFB5 Salajane muusika peatatud!','#ff9800');
+    return;
+  }
+  const audio=new Audio('kos.mp3');
+  audio.loop=true;
+  audio.volume=0.5;
+  audio.play().catch(()=>{});
+  kosMusic={
+    playing:true,
+    el:audio,
+    stop:function(){
+      this.el.pause();
+      this.el.currentTime=0;
+      this.playing=false;
+    }
+  };
+}
+
+cheatBtn.addEventListener('click',activateCheat);
+cheatInput.addEventListener('keydown',function(e){
+  if(e.key==='Enter'){e.preventDefault();activateCheat();}
+});
 
 // =================== INIT ===================
 renderAll();
