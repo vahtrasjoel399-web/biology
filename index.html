@@ -445,6 +445,7 @@ function selectPlant(i){
   state.stage=0;
   renderAll();
   saveState();
+  MusicEngine.onPlantChange();
 }
 
 function checkStageUp(){
@@ -572,61 +573,177 @@ setInterval(()=>{saveState();renderUpgrades();renderPlants();},10000);
 
 // =================== MUSIC ===================
 const MusicEngine=(function(){
-  let ctx,masterGain,playing=false;
-  const notes=[
-    [261.63,329.63,392.00],// C maj
-    [293.66,349.23,440.00],// D min
-    [349.23,440.00,523.25],// F maj
-    [392.00,493.88,587.33],// G maj
-    [261.63,329.63,392.00],// C maj
-    [220.00,261.63,329.63],// Am
-    [349.23,440.00,523.25],// F maj
-    [392.00,493.88,587.33] // G maj
-  ];
-  let stepIdx=0,loopTimer=null;
+  let ctx,masterGain,playing=false,loopTimer=null,stepIdx=0,curPlantId=null;
+  // Reverb convolver
+  let reverb,reverbGain;
+
+  // --- Plant themes ---
+  // Each theme: chords (freq arrays), melody scale, tempo (ms), wave types, feel
+  const themes={
+    daisy:{
+      // Cheerful, bouncy, C major
+      chords:[[261.63,329.63,392],[349.23,440,523.25],[392,493.88,587.33],[261.63,329.63,392],[293.66,349.23,440],[261.63,329.63,392],[349.23,440,523.25],[392,493.88,587.33]],
+      melody:[523.25,587.33,659.25,698.46,783.99,880,523.25*2],
+      bass:[130.81,174.61,196,130.81,146.83,130.81,174.61,196],
+      tempo:420, beatPat:[1,0,1,1,0,1,1,0], padWave:'sine', melWave:'triangle',
+      filterFreq:1800, melVol:0.07, padVol:0.08, bassVol:0.06, swing:0.03
+    },
+    tulip:{
+      // Elegant waltz, Bb major, flowing
+      chords:[[233.08,293.66,349.23],[261.63,329.63,392],[293.66,349.23,440],[233.08,293.66,349.23],[311.13,392,466.16],[261.63,329.63,392],[293.66,349.23,440],[233.08,293.66,349.23]],
+      melody:[466.16,523.25,587.33,698.46,622.25,523.25,466.16],
+      bass:[116.54,130.81,146.83,116.54,155.56,130.81,146.83,116.54],
+      tempo:520, beatPat:[1,0,0,1,0,0,1,0], padWave:'sine', melWave:'sine',
+      filterFreq:1200, melVol:0.06, padVol:0.09, bassVol:0.05, swing:0.06
+    },
+    sunflower:{
+      // Bright, energetic, G major, fast
+      chords:[[392,493.88,587.33],[440,523.25,659.25],[493.88,587.33,739.99],[392,493.88,587.33],[349.23,440,523.25],[329.63,392,493.88],[349.23,440,523.25],[392,493.88,587.33]],
+      melody:[783.99,880,987.77,1046.5,880,783.99,659.25,783.99],
+      bass:[196,220,246.94,196,174.61,164.81,174.61,196],
+      tempo:320, beatPat:[1,1,0,1,1,0,1,1], padWave:'triangle', melWave:'square',
+      filterFreq:2200, melVol:0.04, padVol:0.07, bassVol:0.07, swing:0.02
+    },
+    rose:{
+      // Romantic, lush, D minor → F major
+      chords:[[293.66,349.23,440],[261.63,329.63,392],[233.08,293.66,349.23],[261.63,311.13,392],[293.66,349.23,440],[349.23,440,523.25],[311.13,392,466.16],[293.66,349.23,440]],
+      melody:[587.33,523.25,466.16,440,523.25,587.33,659.25,587.33],
+      bass:[146.83,130.81,116.54,130.81,146.83,174.61,155.56,146.83],
+      tempo:480, beatPat:[1,0,1,0,1,0,1,0], padWave:'sine', melWave:'sine',
+      filterFreq:1000, melVol:0.08, padVol:0.1, bassVol:0.05, swing:0.05
+    },
+    sakura:{
+      // Japanese pentatonic, delicate, Miyako-bushi scale feel
+      chords:[[261.63,311.13,392],[293.66,349.23,440],[261.63,329.63,392],[233.08,293.66,392],[261.63,311.13,392],[293.66,392,466.16],[261.63,349.23,392],[233.08,311.13,392]],
+      melody:[523.25,622.25,659.25,783.99,880,783.99,622.25,523.25],
+      bass:[130.81,146.83,130.81,116.54,130.81,146.83,130.81,116.54],
+      tempo:560, beatPat:[1,0,0,1,0,1,0,0], padWave:'sine', melWave:'triangle',
+      filterFreq:900, melVol:0.06, padVol:0.08, bassVol:0.04, swing:0.08
+    },
+    cactus:{
+      // Desert/western, sparse, A minor pentatonic, rhythmic
+      chords:[[220,261.63,329.63],[246.94,293.66,349.23],[220,293.66,329.63],[196,246.94,293.66],[220,261.63,329.63],[246.94,329.63,392],[220,293.66,349.23],[196,261.63,329.63]],
+      melody:[440,523.25,587.33,659.25,587.33,523.25,440,392],
+      bass:[110,123.47,110,98,110,123.47,110,98],
+      tempo:380, beatPat:[1,1,0,0,1,1,0,1], padWave:'sawtooth', melWave:'square',
+      filterFreq:1400, melVol:0.03, padVol:0.05, bassVol:0.08, swing:0.01
+    }
+  };
+
+  function getTheme(){ return themes[currentPlant().id]||themes.daisy; }
 
   function init(){
     ctx=new(window.AudioContext||window.webkitAudioContext)();
     masterGain=ctx.createGain();
-    masterGain.gain.value=0.18;
+    masterGain.gain.value=0.22;
+    // Simple reverb via delay feedback
+    reverbGain=ctx.createGain();
+    reverbGain.gain.value=0.15;
+    const del=ctx.createDelay(0.5);
+    del.delayTime.value=0.25;
+    const fb=ctx.createGain();
+    fb.gain.value=0.3;
+    const flt=ctx.createBiquadFilter();
+    flt.type='lowpass';flt.frequency.value=1500;
     masterGain.connect(ctx.destination);
+    masterGain.connect(del);
+    del.connect(flt);
+    flt.connect(fb);
+    fb.connect(del);
+    del.connect(reverbGain);
+    reverbGain.connect(ctx.destination);
   }
 
-  function playChord(){
+  function playNote(freq,startT,dur,wave,vol,filterF){
+    if(!ctx)return;
+    const osc=ctx.createOscillator();
+    const g=ctx.createGain();
+    const flt=ctx.createBiquadFilter();
+    osc.type=wave;
+    osc.frequency.value=freq;
+    flt.type='lowpass';
+    flt.frequency.value=filterF||1200;
+    g.gain.setValueAtTime(0,startT);
+    g.gain.linearRampToValueAtTime(vol,startT+Math.min(0.08,dur*0.15));
+    g.gain.setValueAtTime(vol,startT+dur*0.6);
+    g.gain.linearRampToValueAtTime(0,startT+dur);
+    osc.connect(flt);flt.connect(g);g.connect(masterGain);
+    osc.start(startT);osc.stop(startT+dur+0.05);
+  }
+
+  function playStep(){
     if(!ctx||!playing)return;
-    const chord=notes[stepIdx%notes.length];
+    const th=getTheme();
     const now=ctx.currentTime;
-    chord.forEach((freq,i)=>{
+    const ci=stepIdx%th.chords.length;
+    const chord=th.chords[ci];
+    const beatLen=th.tempo/1000;
+
+    // --- Pad / arpeggio ---
+    const pat=th.beatPat;
+    if(pat[stepIdx%pat.length]){
+      // Arpeggiate the chord
+      chord.forEach((f,i)=>{
+        const sw=i*th.swing;
+        playNote(f,now+sw,beatLen*1.8,th.padWave,th.padVol,th.filterFreq);
+        // Octave doubling for richness
+        playNote(f*0.5,now+sw,beatLen*1.6,'sine',th.padVol*0.4,th.filterFreq*0.7);
+      });
+    }
+
+    // --- Bass ---
+    const bassF=th.bass[ci];
+    playNote(bassF,now,beatLen*0.9,'sine',th.bassVol,400);
+    // Sub bass
+    playNote(bassF*0.5,now,beatLen*0.7,'sine',th.bassVol*0.5,200);
+
+    // --- Melody ---
+    // Play melody every 2nd or 3rd step for liveliness
+    if(stepIdx%2===0||(stepIdx%3===0)){
+      const mi=stepIdx%th.melody.length;
+      const mFreq=th.melody[mi];
+      const nextM=th.melody[(mi+1)%th.melody.length];
+      playNote(mFreq,now+beatLen*0.15,beatLen*0.7,th.melWave,th.melVol,th.filterFreq*1.2);
+      // Grace note / ornament
+      if(stepIdx%4===0){
+        playNote(nextM,now+beatLen*0.55,beatLen*0.4,th.melWave,th.melVol*0.5,th.filterFreq);
+      }
+    }
+
+    // --- Rhythmic pluck (gives life!) ---
+    if(stepIdx%3===1){
+      const pluckF=chord[Math.floor(Math.random()*chord.length)]*2;
       const osc=ctx.createOscillator();
       const g=ctx.createGain();
-      const flt=ctx.createBiquadFilter();
-      osc.type='sine';
-      osc.frequency.value=freq*(i===0?0.5:1);
-      flt.type='lowpass';
-      flt.frequency.value=800;
-      g.gain.setValueAtTime(0,now);
-      g.gain.linearRampToValueAtTime(0.12,now+0.6);
-      g.gain.linearRampToValueAtTime(0.06,now+2.0);
-      g.gain.linearRampToValueAtTime(0,now+3.2);
-      osc.connect(flt);
-      flt.connect(g);
-      g.connect(masterGain);
-      osc.start(now+i*0.08);
-      osc.stop(now+3.3);
-    });
-    // Soft high melody note
-    const mel=ctx.createOscillator();
-    const mg=ctx.createGain();
-    mel.type='triangle';
-    mel.frequency.value=chord[Math.floor(Math.random()*chord.length)]*2;
-    mg.gain.setValueAtTime(0,now+0.3);
-    mg.gain.linearRampToValueAtTime(0.04,now+0.8);
-    mg.gain.linearRampToValueAtTime(0,now+2.8);
-    mel.connect(mg);
-    mg.connect(masterGain);
-    mel.start(now+0.3);
-    mel.stop(now+3.0);
+      osc.type='triangle';
+      osc.frequency.value=pluckF;
+      g.gain.setValueAtTime(0.05,now);
+      g.gain.exponentialRampToValueAtTime(0.001,now+0.18);
+      osc.connect(g);g.connect(masterGain);
+      osc.start(now);osc.stop(now+0.2);
+    }
+
+    // --- Hi-hat / shaker rhythm ---
+    if(pat[(stepIdx+1)%pat.length]||stepIdx%2===0){
+      const noise=ctx.createOscillator();
+      const ng=ctx.createGain();
+      const nf=ctx.createBiquadFilter();
+      noise.type='square';
+      noise.frequency.value=4000+Math.random()*3000;
+      nf.type='highpass';nf.frequency.value=6000;
+      ng.gain.setValueAtTime(0.015,now);
+      ng.gain.exponentialRampToValueAtTime(0.001,now+0.06);
+      noise.connect(nf);nf.connect(ng);ng.connect(masterGain);
+      noise.start(now);noise.stop(now+0.07);
+    }
+
     stepIdx++;
+  }
+
+  function startLoop(){
+    if(loopTimer)clearInterval(loopTimer);
+    const th=getTheme();
+    loopTimer=setInterval(playStep,th.tempo);
   }
 
   function start(){
@@ -634,8 +751,10 @@ const MusicEngine=(function(){
     if(!ctx)init();
     if(ctx.state==='suspended')ctx.resume();
     playing=true;
-    playChord();
-    loopTimer=setInterval(playChord,3200);
+    stepIdx=0;
+    curPlantId=currentPlant().id;
+    playStep();
+    startLoop();
   }
 
   function stop(){
@@ -650,7 +769,17 @@ const MusicEngine=(function(){
 
   function isPlaying(){return playing;}
 
-  return{start,stop,toggle,isPlaying};
+  // Call this when plant changes to switch theme
+  function onPlantChange(){
+    if(!playing)return;
+    if(currentPlant().id!==curPlantId){
+      curPlantId=currentPlant().id;
+      stepIdx=0;
+      startLoop(); // restart with new tempo
+    }
+  }
+
+  return{start,stop,toggle,isPlaying,onPlantChange};
 })();
 
 // Music button
